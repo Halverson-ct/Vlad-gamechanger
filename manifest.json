@@ -1,0 +1,48 @@
+{
+  "name": "GameChanger",
+  "short_name": "GameChanger",
+  "description": "Система прокачки персонажа — преврати свою жизнь в RPG",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00d4ff",
+  "orientation": "portrait",
+  "lang": "ru",
+  "scope": ".",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity", "games"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Профиль",
+      "short_name": "Профиль",
+      "description": "Открыть профиль персонажа",
+      "url": "./index.html#page=profile"
+    },
+    {
+      "name": "Ежедневно",
+      "short_name": "Ежедневно",
+      "description": "Открыть ежедневные квесты",
+      "url": "./index.html#page=daily"
+    },
+    {
+      "name": "Цели",
+      "short_name": "Цели",
+      "description": "Открыть список целей",
+      "url": "./index.html#page=goals"
+    }
+  ]
+}
