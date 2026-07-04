@@ -1886,6 +1886,7 @@
                 <div class="weekly-header">
                     <h2 class="weekly-title">📆 Недельный план</h2>
                     <div style="display:flex;gap:10px;align-items:center;">
+                        <button class="btn-refresh-systems" onclick="loadIdealWeek()" style="background:rgba(157,78,221,0.25);border-color:var(--accent-purple);color:var(--accent-purple);">📅 Идеальная неделя</button>
                         <button class="btn-refresh-systems" onclick="refreshSystemsInWeeklyPlan()">🔄 Обновить системы</button>
                         <button class="btn-sort-by-time" onclick="sortWeeklyPlanByTime()">⏰ Сортировать по времени</button>
                         <div class="week-navigation">
@@ -2733,11 +2734,11 @@
         }
 
         // ==================== SUPABASE CLOUD SYNC (синк телефон↔ПК + канал Claude-edit) ====================
-        // ⚠️ ЕГОР: вставь свой anon-ключ ниже вместо eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFodGprc3J1ZXBzc3F5Z3FldGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTMzOTIsImV4cCI6MjA5ODY2OTM5Mn0.9_dTVTxYXcnAFnWaxxVS_ZIM8uzao3nmNiPFyKXO-BY (он публичный, безопасный).
-        const SUPABASE_URL = 'https://qhtjksruepssqygqetjx.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFodGprc3J1ZXBzc3F5Z3FldGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTMzOTIsImV4cCI6MjA5ODY2OTM5Mn0.9_dTVTxYXcnAFnWaxxVS_ZIM8uzao3nmNiPFyKXO-BY';
+        // ⚠️ ЕГОР: вставь свой anon-ключ ниже вместо eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkenF0aHVvbmJjZmhrZnlrZGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NTM1NDcsImV4cCI6MjA5NzUyOTU0N30.QN1Z9cNvqJMGPOhy3g9HnB6vgsAkXh3wk9BBTfuKEi0 (он публичный, безопасный).
+        const SUPABASE_URL = 'https://udzqthuonbcfhkfykdjx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkenF0aHVvbmJjZmhrZnlrZGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NTM1NDcsImV4cCI6MjA5NzUyOTU0N30.QN1Z9cNvqJMGPOhy3g9HnB6vgsAkXh3wk9BBTfuKEi0';
         let supa = null, _supaPushTimer = null, _supaApplying = false, _lastRev = null;
-        let _blocksSnap = {}, _blocksRecentWrites = {}, _blocksApplying = false, _blocksPushTimer = null, _blocksRtTimer = null;
+        let _blocksSnap = {}, _blocksRecentWrites = {}, _blocksApplying = false, _blocksPushTimer = null, _blocksRtTimer = null, _blocksHydrated = false;
         try {
             if (window.supabase && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf('PASTE') !== 0) {
                 supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -2911,7 +2912,8 @@
         async function hydrateBlocksFromTable() {
             if (!supa) return false;
             const { data, error } = await supa.from('blocks').select('*');
-            if (error) { console.warn('[blocks] hydrate', error); return false; }
+            if (error) { console.warn('[blocks] hydrate', error); return false; } // ошибка сети — НЕ hydrated, синк остаётся заблокирован (не рискуем)
+            _blocksHydrated = true; // запрос удался → знаем ИСТИННОЕ состояние таблицы (даже если пусто) → синку теперь можно доверять
             if (!data || data.length === 0) { console.warn('[blocks] таблица пуста — НЕ перетираю weeklyTasks (защита)'); return false; }
             const wt = {}, snap = {};
             data.forEach(r => {
@@ -2932,7 +2934,7 @@
             return true;
         }
         function pushBlocksDiff() {
-            if (!supa || _blocksApplying) return;
+            if (!supa || _blocksApplying || !_blocksHydrated) return; // 🛡 НЕ трогаем таблицу, пока hydrate не подтвердил истинное состояние — закрывает race "save до загрузки" (корень обнуления 04.07)
             clearTimeout(_blocksPushTimer);
             _blocksPushTimer = setTimeout(async () => {
                 try {
