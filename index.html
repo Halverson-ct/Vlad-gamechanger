@@ -3858,7 +3858,9 @@
             }
             items.sort((a, b) => a.s - b.s);
             const minS = Math.min.apply(null, items.map(x => x.s)), maxE = Math.max.apply(null, items.map(x => x.e));
-            const DS = Math.floor(minS / 60) * 60, DE = Math.ceil(maxE / 60) * 60;
+            // ВСЕГДА показываем полный день (минимум 06:00–22:00), расширяем только если блок раньше/позже.
+            // Иначе ось схлопывается до диапазона блоков: не видно и не добавить утро/вечер, нечего листать.
+            const DS = Math.min(360, Math.floor(minS / 60) * 60), DE = Math.max(1320, Math.ceil(maxE / 60) * 60);
             _calDS = DS;
             const yy = (m) => (m - DS) * TL_PPM;
             // наложения (попарно)
