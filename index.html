@@ -1886,7 +1886,6 @@
                 <div class="weekly-header">
                     <h2 class="weekly-title">📆 Недельный план</h2>
                     <div style="display:flex;gap:10px;align-items:center;">
-                        <button class="btn-refresh-systems" onclick="loadIdealWeek()" style="background:rgba(157,78,221,0.25);border-color:var(--accent-purple);color:var(--accent-purple);">📅 Идеальная неделя</button>
                         <button class="btn-refresh-systems" onclick="refreshSystemsInWeeklyPlan()">🔄 Обновить системы</button>
                         <button class="btn-sort-by-time" onclick="sortWeeklyPlanByTime()">⏰ Сортировать по времени</button>
                         <div class="week-navigation">
@@ -2952,6 +2951,13 @@
                     for (const id in curJson) { if (_blocksSnap[id] !== curJson[id]) ups.push(Object.assign({}, curRow[id], { updated_at: new Date().toISOString() })); }
                     const dels = [];
                     for (const id in _blocksSnap) { if (!(id in curJson)) dels.push(id); }
+                    // 🛡 САНИТИ-ГАРД от масс-делита: если "пропало" много строк — это почти наверняка НЕПОЛНАЯ загрузка (sparse weeklyTasks), а не реальное удаление юзером.
+                    // Юзер не удаляет 15+ блоков за 0.9с. Абортим ВЕСЬ синк (не трогаем таблицу и snapshot) → таблицу не обнулить, ждём здоровой загрузки.
+                    const _snapN = Object.keys(_blocksSnap).length, _curN = Object.keys(curJson).length;
+                    if (dels.length > 15 || (_snapN >= 8 && _curN < _snapN * 0.5)) {
+                        console.warn('[blocks] ⛔ подозрительный state: в памяти ' + _curN + ' из ' + _snapN + ' (delete ' + dels.length + ') — ПРОПУСКАЮ синк, таблицу не трогаю');
+                        return;
+                    }
                     if (ups.length) {
                         ups.forEach(r => { _blocksRecentWrites[r.id] = Date.now(); });
                         const up = await supa.from('blocks').upsert(ups);
@@ -3850,17 +3856,17 @@
             const items = tasks.map((t, i) => ({ t: t, i: i, s: getTaskStartTimeInMinutes(t), e: getTaskEndTimeInMinutes(t) }))
                 .filter(it => isFinite(it.s) && isFinite(it.e) && it.e > it.s);
             if (!items.length) {
-                const DS0 = 360, DE0 = 1320; // пустой день — ось 06:00–22:00, тап добавляет
+                const DS0 = 360, DE0 = 1440; // пустой день — ось 06:00–24:00, тап добавляет
                 let h = '<div class="day-cal day-cal-empty" style="height:' + Math.round((DE0 - DS0) * TL_PPM) + 'px" onclick="calBgClick(event, \'' + dayCode + '\', ' + DS0 + ')">';
                 for (let hh = DS0; hh <= DE0; hh += 60) { const y = Math.round((hh - DS0) * TL_PPM); h += '<div class="cal-hl" style="top:' + y + 'px"></div><div class="cal-hlbl" style="top:' + y + 'px">' + _fmtHM(hh) + '</div>'; }
-                h += '<div class="cal-empty-hint">Пусто. Нажми «📅 Идеальная неделя» сверху,<br>или тапни по времени, чтобы добавить блок.</div></div>';
+                h += '<div class="cal-empty-hint">Тапни по времени, чтобы добавить блок.</div></div>';
                 return h;
             }
             items.sort((a, b) => a.s - b.s);
             const minS = Math.min.apply(null, items.map(x => x.s)), maxE = Math.max.apply(null, items.map(x => x.e));
-            // ВСЕГДА показываем полный день (минимум 06:00–22:00), расширяем только если блок раньше/позже.
+            // ВСЕГДА показываем полный день (минимум 06:00–24:00), расширяем только если блок раньше/позже.
             // Иначе ось схлопывается до диапазона блоков: не видно и не добавить утро/вечер, нечего листать.
-            const DS = Math.min(360, Math.floor(minS / 60) * 60), DE = Math.max(1320, Math.ceil(maxE / 60) * 60);
+            const DS = Math.min(360, Math.floor(minS / 60) * 60), DE = Math.max(1440, Math.ceil(maxE / 60) * 60);
             _calDS = DS;
             const yy = (m) => (m - DS) * TL_PPM;
             // наложения (попарно)
@@ -4157,7 +4163,7 @@
             }
             const pastCount = pastIdx.size;
             const pastDone = [...pastIdx].filter(idx => tasks[idx] && tasks[idx].completed).length;
-            const collapsePast = pastCount > 0 && !showPastBlocks;
+            const collapsePast = false; // ПРОШЕДШЕЕ-сворачивание убрано (в absolute-календаре бессмысленно) — прошедшие блоки всегда видны на оси
 
             let html = '<div class="day-detail">' +
                 '<div class="day-detail-header">' +
@@ -4188,13 +4194,6 @@
                     '<div class="day-iter-label">🌅 Утренняя итерация</div>' +
                     '<textarea class="day-iter-input" placeholder="Что вчера улучшу сегодня? Одно. (рост, не вина)" onblur="saveDayIter(\'' + weekKey + '\', \'' + dayCode + '\', this.value)">' + iterVal + '</textarea>' +
                 '</div>' +
-                (isToday && pastCount > 0 ?
-                    '<div class="day-past-toggle' + (showPastBlocks ? ' open' : '') + '" onclick="togglePastBlocks()">' +
-                        '<span class="dpt-chev">' + (showPastBlocks ? '▾' : '▸') + '</span>' +
-                        '<span class="dpt-label">Прошедшее · ' + pastCount + ' ' + _pluralBlocks(pastCount) + '</span>' +
-                        '<span class="dpt-done">✓ ' + pastDone + '/' + pastCount + '</span>' +
-                    '</div>'
-                : '') +
                 '';
 
             html += buildDayCalendar(tasks, weekKey, dayCode, pastIdx, collapsePast);

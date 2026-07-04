@@ -1,7 +1,7 @@
 // GameChanger PWA Service Worker
 // Cache-first strategy for offline functionality
 
-const CACHE_VERSION = 'v1.49.0';
+const CACHE_VERSION = 'v1.51.0';
 const CACHE_NAME = `gamechanger-${CACHE_VERSION}`;
 
 // Files to cache
