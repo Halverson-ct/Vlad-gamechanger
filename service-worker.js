@@ -1,15 +1,15 @@
 // GameChanger PWA Service Worker
 // Cache-first strategy for offline functionality
 
-const CACHE_VERSION = 'v1.24.0';
+const CACHE_VERSION = 'v1.48.0';
 const CACHE_NAME = `gamechanger-${CACHE_VERSION}`;
 
 // Files to cache
 const FILES_TO_CACHE = [
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './icon-192.png.jpg',
+  './icon-512.png.jpg'
 ];
 
 // Google Fonts URLs (optional - can be cached too)
@@ -20,20 +20,12 @@ const FONT_URLS = [
 // Install event - cache files
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...');
-  
+  self.skipWaiting(); // мгновенная активация — НЕ ждём закрытия всех вкладок, НЕ в цепочке кэша
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[Service Worker] Caching app files');
-        return cache.addAll(FILES_TO_CACHE);
-      })
-      .then(() => {
-        console.log('[Service Worker] All files cached successfully');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('[Service Worker] Cache failed:', error);
-      })
+    caches.open(CACHE_NAME).then((cache) =>
+      // по одному (allSettled) — один битый файл (напр. иконка) не ломает кэширование остального
+      Promise.allSettled(FILES_TO_CACHE.map((f) => cache.add(f)))
+    )
   );
 });
 
@@ -61,65 +53,48 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - cache-first strategy
+// Fetch — network-first для HTML/навигации (всегда свежий index.html онлайн),
+// cache-first для остальных ассетов/шрифтов (быстро + офлайн).
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
+  if (request.method !== 'GET' || url.protocol === 'chrome-extension:') return;
+
+  const isHTML = request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('/index.html');
+  if (isHTML) {
+    event.respondWith(
+      fetch(request)
+        .then((resp) => {
+          if (resp && resp.status === 200) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then((c) => c.put('./index.html', clone));
+          }
+          return resp;
+        })
+        .catch(() => caches.match('./index.html')) // офлайн — из кэша
+    );
     return;
   }
-  
-  // Skip chrome-extension requests
-  if (url.protocol === 'chrome-extension:') {
-    return;
-  }
-  
+
   event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        // Return cached version if available
-        if (cachedResponse) {
-          console.log('[Service Worker] Serving from cache:', request.url);
-          return cachedResponse;
-        }
-        
-        // Otherwise fetch from network
-        return fetch(request)
-          .then((networkResponse) => {
-            // Don't cache non-successful responses
-            if (!networkResponse || networkResponse.status !== 200) {
-              return networkResponse;
-            }
-            
-            // Clone response before caching
-            const responseToCache = networkResponse.clone();
-            
-            // Add to cache
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // Only cache same-origin requests and fonts
-                if (url.origin === self.location.origin || 
-                    url.hostname.includes('fonts.googleapis.com') ||
-                    url.hostname.includes('fonts.gstatic.com')) {
-                  cache.put(request, responseToCache);
-                }
-              });
-            
-            return networkResponse;
-          })
-          .catch((error) => {
-            console.error('[Service Worker] Fetch failed:', error);
-            
-            // For navigation requests, return cached index.html as fallback
-            if (request.mode === 'navigate') {
-              return caches.match('./index.html');
-            }
-            
-            throw error;
-          });
-      })
+    caches.match(request).then((cached) =>
+      cached ||
+      fetch(request)
+        .then((resp) => {
+          if (resp && resp.status === 200 &&
+              (url.origin === self.location.origin ||
+               url.hostname.includes('fonts.googleapis.com') ||
+               url.hostname.includes('fonts.gstatic.com'))) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+          }
+          return resp;
+        })
+        .catch((error) => {
+          if (request.mode === 'navigate') return caches.match('./index.html');
+          throw error;
+        })
+    )
   );
 });
 

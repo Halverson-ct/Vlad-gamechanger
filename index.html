@@ -390,6 +390,9 @@
         .day-detail { animation: dayFadeIn 0.25s ease; }
         @keyframes dayFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .day-detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+        .day-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: 1 1 100%; }
+        .day-add-btn { flex-shrink: 0; padding: 6px 13px; background: rgba(0,255,136,0.12); border: 1px solid var(--accent-green); color: var(--accent-green); font-family: inherit; font-size: 0.8rem; font-weight: 500; cursor: pointer; border-radius: 7px; transition: background 0.2s ease; white-space: nowrap; }
+        .day-add-btn:hover { background: rgba(0,255,136,0.22); }
         .day-back-btn {
             padding: 8px 16px; background: rgba(0,212,255,0.12); border: 1px solid var(--accent-blue);
             color: var(--accent-blue); border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 0.85rem;
@@ -409,6 +412,74 @@
         .day-progress-bar { height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; }
         .day-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green)); border-radius: 5px; transition: width 0.4s ease; }
         .day-blocks { display: flex; flex-direction: column; gap: 8px; }
+        /* ЭТАП 2a: таймлайн-день — блоки по времени, высота = длительность, гэпы = свободное время */
+        .day-timeline { display: flex; flex-direction: column; gap: 4px; }
+        .day-timeline .day-block { padding: 7px 12px; position: relative; }
+        .day-timeline .day-block:not(.expanded) { justify-content: center; }
+        .day-timeline .day-block.expanded { padding: 13px 14px; }
+        .day-timeline .day-block:not(.expanded) .day-block-content { gap: 2px; }
+        /* ЭТАП 2b: ручки resize верх/низ */
+        .tl-handle { position: absolute; left: 50%; transform: translateX(-50%); width: 46px; height: 11px; display: flex; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; z-index: 5; }
+        .tl-handle-top { top: -2px; }
+        .tl-handle-bottom { bottom: -2px; }
+        .tl-handle::before { content: ''; width: 20px; height: 2px; border-radius: 2px; background: rgba(0,245,212,0.22); transition: background 0.15s ease, width 0.15s ease, height 0.15s ease; }
+        .tl-handle:active::before { background: var(--accent-cyan); width: 34px; height: 3px; }
+        .day-timeline .day-block.expanded .tl-handle { display: none; }
+        .day-timeline .day-block.overlap { border-color: var(--accent-red) !important; background: rgba(38,14,20,0.97) !important; z-index: 2; box-shadow: 0 -3px 14px rgba(255,56,100,0.4), 0 4px 14px rgba(255,56,100,0.22); }
+        .day-timeline .day-block.colliding { border-color: var(--accent-red) !important; box-shadow: 0 0 0 2px var(--accent-red), 0 0 14px rgba(255,56,100,0.5); z-index: 6; }
+        .tl-gap { display: flex; align-items: center; justify-content: center; }
+        .tl-gap span { font-size: 0.62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border: 1px dashed rgba(255,255,255,0.14); border-radius: 6px; padding: 1px 9px; }
+        /* ЭТАП 3a: absolute-календарь дня */
+        .day-cal { position: relative; width: 100%; margin-top: 4px; }
+        .cal-hl { position: absolute; left: 42px; right: 0; border-top: 1px solid rgba(255,255,255,0.06); pointer-events: none; }
+        .cal-hlbl { position: absolute; left: 0; width: 36px; text-align: right; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; transform: translateY(-6px); pointer-events: none; }
+        .cal-blk { position: absolute; box-sizing: border-box; border-radius: 7px; padding: 2px 8px; overflow: hidden; background: rgba(0,212,255,0.13); border: 1px solid rgba(0,212,255,0.38); cursor: pointer; transition: background 0.15s ease; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        .cal-blk.cal-moving { opacity: 0.9; box-shadow: 0 6px 18px rgba(0,0,0,0.55); border-color: var(--accent-cyan); }
+        .cal-blk:hover { background: rgba(0,212,255,0.22); }
+        .cal-blk-t { font-size: 10px; color: var(--accent-gold); font-variant-numeric: tabular-nums; line-height: 1.15; }
+        .cal-blk-n { font-size: 12px; font-weight: 500; line-height: 1.2; color: var(--text-primary); }
+        .cal-blk.short { padding: 0 8px; display: flex; align-items: center; }
+        .cal-blk.short .cal-blk-n { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cal-empty-hint { position: absolute; left: 46px; right: 8px; top: 38%; text-align: center; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; pointer-events: none; }
+        .day-add-hint { font-size: 0.66rem; color: var(--text-muted); flex-shrink: 0; font-style: italic; }
+        .cal-blk.completed { opacity: 0.5; }
+        .cal-blk.completed .cal-blk-n { text-decoration: line-through; }
+        .cal-blk.is-past { opacity: 0.55; }
+        .cal-blk.overlap { border: 1.5px solid var(--accent-red) !important; background: rgba(38,14,20,0.92); z-index: 3; box-shadow: 0 0 11px rgba(255,56,100,0.4); }
+        .cal-blk.bt-baza { border-left: 3px solid #8a8f98; }
+        .cal-blk.bt-fokus { border-left: 3px solid var(--accent-gold); }
+        .cal-blk.bt-smazka { border-left: 3px solid var(--accent-cyan); }
+        .cal-blk.bt-blog { border-left: 3px solid #ff5e7e; }
+        /* ЭТАП 3b: тонкие resize-зоны на краях блока (скролл по телу сохраняется) */
+        .cal-rz { position: absolute; left: 50%; transform: translateX(-50%); width: 54px; height: 16px; z-index: 5; touch-action: none; cursor: ns-resize; display: none; align-items: center; justify-content: center; }
+        .cal-blk.sel .cal-rz { display: flex; }
+        .cal-blk.sel { box-shadow: 0 0 0 2px var(--accent-cyan); z-index: 4; }
+        .cal-rz-t { top: -2px; }
+        .cal-rz-b { bottom: -2px; }
+        .cal-rz::after { content: ''; width: 28px; height: 3px; border-radius: 2px; background: rgba(0,245,212,0.5); transition: background 0.15s ease, width 0.15s ease; }
+        .cal-rz.rz-active::after { background: var(--accent-cyan); width: 40px; }
+        .cal-exp { position: absolute; right: 4px; top: 4px; width: 26px; height: 26px; border-radius: 6px; z-index: 6; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.06); cursor: pointer; }
+        .cal-exp:hover, .cal-exp:active { color: var(--accent-cyan); background: rgba(0,245,212,0.15); }
+        .cal-cb { position: absolute; top: 7px; left: 7px; width: 17px; height: 17px; border: 2px solid var(--accent-green); border-radius: 5px; z-index: 6; cursor: pointer; box-sizing: border-box; }
+        .cal-cb.checked { background: var(--accent-green); }
+        .cal-cb.checked::after { content: '✓'; position: absolute; inset: -2px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--bg-dark); font-weight: bold; }
+        .cal-blk.has-cb { padding-left: 30px; }
+        .cal-blk.has-exp { padding-right: 34px; }
+        .cal-blk.short.has-exp { padding-right: 26px; }
+        .cal-blk.short .cal-rz { height: 10px; }
+        .cal-blk.short .cal-exp { width: 22px; height: 22px; top: 2px; right: 2px; }
+        .cal-blk.short .cal-exp svg { width: 13px; height: 13px; }
+        /* деталь-оверлей блока */
+        .bd-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+        .bd-cb { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--accent-green); flex-shrink: 0; cursor: pointer; margin-top: 2px; transition: background 0.15s ease; }
+        .bd-cb.checked { background: var(--accent-green); }
+        .bd-titlewrap { flex: 1; min-width: 0; }
+        .bd-time { font-size: 0.8rem; color: var(--accent-gold); font-variant-numeric: tabular-nums; }
+        .bd-title { font-size: 1.05rem; font-weight: 600; line-height: 1.25; }
+        .bd-x { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; flex-shrink: 0; padding: 0 4px; line-height: 1; }
+        .bd-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+        .bd-act { flex: 1; min-width: 130px; padding: 9px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: var(--text-secondary); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
+        .bd-act.del { border-color: rgba(255,56,100,0.4); color: var(--accent-red); }
         .day-block {
             display: flex; flex-direction: column; gap: 0; padding: 13px 14px; cursor: pointer;
             background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
@@ -833,6 +904,12 @@
         .modal-overlay.active { display: flex; }
         .modal { background: linear-gradient(145deg, var(--bg-panel), rgba(20,20,35,0.95)); border: 2px solid var(--accent-blue); border-radius: 15px; padding: 25px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
         .modal-large { max-width: 800px; }
+        /* ЭТАП 3a: bottom-sheet (Notion-стиль) — форма снизу, план виден и кликабелен сверху */
+        .modal-overlay.modal-sheet { align-items: flex-end; background: transparent; pointer-events: none; padding: 0; }
+        .modal-overlay.modal-sheet .modal { pointer-events: auto; width: 100%; max-width: 100%; border-radius: 16px 16px 0 0; border-bottom: none; max-height: 74vh; box-shadow: 0 -10px 34px rgba(0,0,0,0.7); animation: sheetUp 0.22s ease; position: relative; transition: transform 0.25s ease; }
+        @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .sheet-toggle { position: absolute; top: 12px; right: 14px; z-index: 3; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: var(--text-secondary); width: 34px; height: 34px; border-radius: 8px; font-size: 1rem; cursor: pointer; line-height: 1; }
+        .modal-overlay.modal-sheet.sheet-collapsed .modal { transform: translateY(calc(100% - 58px)); }
         .modal-title { font-size: 1.3rem; color: var(--accent-blue); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; }
@@ -2186,8 +2263,9 @@
     </div>
 
     <!-- Task Modal -->
-    <div id="taskModal" class="modal-overlay">
+    <div id="taskModal" class="modal-overlay modal-sheet">
         <div class="modal">
+            <button type="button" class="sheet-toggle" onclick="toggleSheetCollapse()" title="Свернуть / развернуть">▾</button>
             <h3 class="modal-title" id="taskModalTitle">📝 Новая задача</h3>
             <form id="taskForm" onsubmit="saveTask(event)">
                 <input type="hidden" id="taskDay">
@@ -2214,6 +2292,13 @@
                     <button type="button" class="btn-cancel" onclick="closeModal('taskModal')">Отмена</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ЭТАП 3a: детали блока (оверлей календаря) -->
+    <div id="blockDetailModal" class="modal-overlay">
+        <div class="modal modal-large">
+            <div id="blockDetailContent"></div>
         </div>
     </div>
 
@@ -2644,14 +2729,16 @@
 
         function saveData(data) {
             localStorage.setItem('soloLevelingData_v4', JSON.stringify(data));
-            if (typeof pushToCloud === 'function') pushToCloud(data);
+            if (typeof pushToCloud === 'function') pushToCloud(data); // dual-write: блоб (страховка отката на этапе 3)
+            if (typeof pushBlocksDiff === 'function') pushBlocksDiff(); // блоки → таблица blocks (per-block diff)
         }
 
         // ==================== SUPABASE CLOUD SYNC (синк телефон↔ПК + канал Claude-edit) ====================
-        // ⚠️ ЕГОР: вставь свой anon-ключ ниже вместо eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkenF0aHVvbmJjZmhrZnlrZGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NTM1NDcsImV4cCI6MjA5NzUyOTU0N30.QN1Z9cNvqJMGPOhy3g9HnB6vgsAkXh3wk9BBTfuKEi0 (он публичный, безопасный).
+        // ⚠️ ЕГОР: вставь свой anon-ключ ниже вместо eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFodGprc3J1ZXBzc3F5Z3FldGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTMzOTIsImV4cCI6MjA5ODY2OTM5Mn0.9_dTVTxYXcnAFnWaxxVS_ZIM8uzao3nmNiPFyKXO-BY (он публичный, безопасный).
         const SUPABASE_URL = 'https://qhtjksruepssqygqetjx.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFodGprc3J1ZXBzc3F5Z3FldGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTMzOTIsImV4cCI6MjA5ODY2OTM5Mn0.9_dTVTxYXcnAFnWaxxVS_ZIM8uzao3nmNiPFyKXO-BY';
         let supa = null, _supaPushTimer = null, _supaApplying = false, _lastRev = null;
+        let _blocksSnap = {}, _blocksRecentWrites = {}, _blocksApplying = false, _blocksPushTimer = null, _blocksRtTimer = null;
         try {
             if (window.supabase && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf('PASTE') !== 0) {
                 supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -2675,17 +2762,21 @@
             if (!supa) return;
             try {
                 const { data, error } = await supa.from('app_state').select('data').eq('id', 1).single();
-                if (error) { console.warn('[supa] pull', error); return; }
-                if (data && data.data && Object.keys(data.data).length > 0) {
+                if (error) { console.warn('[supa] pull', error); }
+                else if (data && data.data && Object.keys(data.data).length > 0) {
                     _supaApplying = true;
                     applyCloudUpdate(data.data);
                     _supaApplying = false;
                     console.log('[supa] pulled cloud state');
                 } else {
-                    // облако пустое → засеять текущим локальным (первый запуск)
-                    pushToCloud(appData);
+                    pushToCloud(appData); // облако пустое → засеять текущим локальным (первый запуск)
                 }
-            } catch (e) { console.warn('[supa] pull', e); _supaApplying = false; }
+                // блоки — ИЗ ТАБЛИЦЫ (источник правды для weeklyTasks, этап 3)
+                _blocksApplying = true;
+                const okB = await hydrateBlocksFromTable();
+                _blocksApplying = false;
+                if (okB) { try { localStorage.setItem('soloLevelingData_v4', JSON.stringify(appData)); } catch (e) {} refreshActiveView(); }
+            } catch (e) { console.warn('[supa] pull', e); _supaApplying = false; _blocksApplying = false; }
         }
 
         function subscribeCloud() {
@@ -2706,7 +2797,9 @@
 
         // REALTIME-ФИКС: применить облачное обновление БЕЗ сброса вкладки/открытого дня
         function applyCloudUpdate(newData) {
+            const keepTasks = (appData && appData.weeklyTasks) ? appData.weeklyTasks : undefined; // блоки — из таблицы, не из блоба
             appData = newData;
+            if (keepTasks !== undefined) appData.weeklyTasks = keepTasks;
             try { localStorage.setItem('soloLevelingData_v4', JSON.stringify(appData)); } catch (e) {}
             refreshActiveView();
         }
@@ -2724,6 +2817,171 @@
                 else if (active.id === 'daily') renderDailyQuests();
                 else if (active.id === 'profile') updateAvatar();
             } catch (e) {}
+        }
+
+        // ==================== [ВРЕМЕННО · Этап 2] МИГРАЦИЯ БЛОКОВ blob → таблица blocks ====================
+        // Одноразовая. Запуск: открыть сайт на ПК (дать синкнуться) → в консоли (F12) выполнить: gcMigrateBlocks()
+        // Идемпотентна (delete+insert — можно перезапускать). Блоб НЕ трогается (остаётся источником правды до этапа 4).
+        function _dayDateFromKey(weekKey, dayCode) {
+            const i = dayCodes.indexOf(dayCode);
+            const p = weekKey.split('-').map(Number);
+            const dt = new Date(p[0], p[1] - 1, p[2], 12, 0, 0, 0); // ЛОКАЛЬНЫЙ полдень (не UTC-парсинг строки — избегаем date-бага getWeekKey)
+            dt.setDate(dt.getDate() + (i < 0 ? 0 : i));
+            const mm = String(dt.getMonth() + 1).padStart(2, '0');
+            const dd = String(dt.getDate()).padStart(2, '0');
+            return dt.getFullYear() + '-' + mm + '-' + dd;
+        }
+        window.gcMigrateBlocks = async function () {
+            if (!supa) { alert('Supabase не готов'); return; }
+            const del = await supa.from('blocks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (del.error) { console.error('[migrate] delete', del.error); alert('Ошибка delete: ' + del.error.message); return; }
+            const rows = [];
+            const wt = appData.weeklyTasks || {};
+            for (const weekKey in wt) {
+                const days = wt[weekKey] || {};
+                for (const dayCode in days) {
+                    (days[dayCode] || []).forEach((t, idx) => {
+                        const sMin = getTaskStartTimeInMinutes(t), eMin = getTaskEndTimeInMinutes(t);
+                        rows.push({
+                            day_date: _dayDateFromKey(weekKey, dayCode),
+                            start_time: isFinite(sMin) ? _fmtHM(sMin) : null,
+                            end_time: isFinite(eMin) ? _fmtHM(eMin) : null,
+                            title: t.title || '',
+                            tag: t.tag || null,
+                            done: !!t.completed,
+                            description: t.desc || null,
+                            note: t.note || null,
+                            anchors: Array.isArray(t.anchors) ? t.anchors : null,
+                            micro: Array.isArray(t.micro) ? t.micro : null,
+                            sort_order: idx
+                        });
+                    });
+                }
+            }
+            if (!rows.length) { alert('Нет блоков для миграции (appData пуст?)'); return; }
+            let inserted = 0;
+            for (let i = 0; i < rows.length; i += 500) {
+                const ins = await supa.from('blocks').insert(rows.slice(i, i + 500));
+                if (ins.error) { console.error('[migrate] insert', ins.error); alert('Ошибка insert: ' + ins.error.message); return; }
+                inserted += Math.min(500, rows.length - i);
+            }
+            const res = await supa.from('blocks').select('*', { count: 'exact', head: true });
+            const inTable = res.error ? '?' : res.count;
+            const msg = 'Миграция готова.\nБлоков в приложении: ' + rows.length + '\nВ таблице сейчас: ' + inTable + (String(rows.length) === String(inTable) ? '\n✅ Совпадает!' : '\n⚠️ НЕ совпадает — проверь');
+            console.log('[migrate]', msg);
+            alert(msg);
+        };
+
+        // ==================== [Этап 3] БЛОКИ ↔ таблица blocks (hydrate + per-block diff + realtime) ====================
+        function _genId() {
+            try { return crypto.randomUUID(); } catch (e) { return 'b_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+        }
+        // инверс _dayDateFromKey: 'YYYY-MM-DD' → {weekKey (понедельник), dayCode} — ВСЁ ЛОКАЛЬНО, без UTC-парсинга строки
+        function _weekKeyDayFromDate(dateStr) {
+            const p = String(dateStr).split('-').map(Number);
+            const dt = new Date(p[0], p[1] - 1, p[2], 12, 0, 0, 0);
+            const dayIdx = (dt.getDay() + 6) % 7; // 0=Пн..6=Вс
+            const mon = new Date(dt); mon.setDate(mon.getDate() - dayIdx);
+            const mm = String(mon.getMonth() + 1).padStart(2, '0'), dd = String(mon.getDate()).padStart(2, '0');
+            return { weekKey: mon.getFullYear() + '-' + mm + '-' + dd, dayCode: dayCodes[dayIdx] };
+        }
+        function _rowToBlock(r) {
+            const time = (r.start_time && r.end_time) ? (r.start_time + ' - ' + r.end_time) : (r.start_time || '');
+            const b = { id: r.id, title: r.title || '', time: time, completed: !!r.done };
+            if (r.tag) b.tag = r.tag;
+            if (r.description) b.desc = r.description;
+            if (r.note) b.note = r.note;
+            if (Array.isArray(r.anchors)) b.anchors = r.anchors;
+            if (Array.isArray(r.micro)) b.micro = r.micro;
+            return b;
+        }
+        function _blockRow(b, weekKey, dayCode, order) {
+            const sMin = getTaskStartTimeInMinutes(b), eMin = getTaskEndTimeInMinutes(b);
+            return {
+                id: b.id,
+                day_date: _dayDateFromKey(weekKey, dayCode),
+                start_time: isFinite(sMin) ? _fmtHM(sMin) : null,
+                end_time: isFinite(eMin) ? _fmtHM(eMin) : null,
+                title: b.title || '', tag: b.tag || null, done: !!b.completed,
+                description: b.desc || null, note: b.note || null,
+                anchors: Array.isArray(b.anchors) ? b.anchors : null,
+                micro: Array.isArray(b.micro) ? b.micro : null,
+                sort_order: order
+            };
+        }
+        async function hydrateBlocksFromTable() {
+            if (!supa) return false;
+            const { data, error } = await supa.from('blocks').select('*');
+            if (error) { console.warn('[blocks] hydrate', error); return false; }
+            if (!data || data.length === 0) { console.warn('[blocks] таблица пуста — НЕ перетираю weeklyTasks (защита)'); return false; }
+            const wt = {}, snap = {};
+            data.forEach(r => {
+                const wd = _weekKeyDayFromDate(r.day_date);
+                if (!wt[wd.weekKey]) wt[wd.weekKey] = {};
+                if (!wt[wd.weekKey][wd.dayCode]) wt[wd.weekKey][wd.dayCode] = [];
+                wt[wd.weekKey][wd.dayCode].push({ r: r, ord: (r.sort_order || 0) });
+            });
+            for (const wk in wt) for (const dc in wt[wk]) {
+                wt[wk][dc].sort((a, b) => a.ord - b.ord);
+                const blocks = wt[wk][dc].map(x => _rowToBlock(x.r));
+                wt[wk][dc] = blocks;
+                blocks.forEach((b, idx) => { snap[b.id] = JSON.stringify(_blockRow(b, wk, dc, idx)); });
+            }
+            appData.weeklyTasks = wt;
+            _blocksSnap = snap;
+            console.log('[blocks] hydrated', data.length);
+            return true;
+        }
+        function pushBlocksDiff() {
+            if (!supa || _blocksApplying) return;
+            clearTimeout(_blocksPushTimer);
+            _blocksPushTimer = setTimeout(async () => {
+                try {
+                    const wt = appData.weeklyTasks || {}, curJson = {}, curRow = {};
+                    for (const wk in wt) {
+                        const days = wt[wk] || {};
+                        for (const dc in days) {
+                            (days[dc] || []).forEach((b, idx) => {
+                                if (!b.id) b.id = _genId();
+                                const row = _blockRow(b, wk, dc, idx);
+                                curRow[b.id] = row; curJson[b.id] = JSON.stringify(row);
+                            });
+                        }
+                    }
+                    const ups = [];
+                    for (const id in curJson) { if (_blocksSnap[id] !== curJson[id]) ups.push(Object.assign({}, curRow[id], { updated_at: new Date().toISOString() })); }
+                    const dels = [];
+                    for (const id in _blocksSnap) { if (!(id in curJson)) dels.push(id); }
+                    if (ups.length) {
+                        ups.forEach(r => { _blocksRecentWrites[r.id] = Date.now(); });
+                        const up = await supa.from('blocks').upsert(ups);
+                        if (up.error) { console.warn('[blocks] upsert', up.error); return; }
+                    }
+                    if (dels.length) {
+                        dels.forEach(id => { _blocksRecentWrites[id] = Date.now(); });
+                        const dl = await supa.from('blocks').delete().in('id', dels);
+                        if (dl.error) { console.warn('[blocks] delete', dl.error); return; }
+                    }
+                    _blocksSnap = curJson;
+                    if (ups.length || dels.length) console.log('[blocks] synced +' + ups.length + ' -' + dels.length);
+                } catch (e) { console.warn('[blocks] diff', e); }
+            }, 900);
+        }
+        function subscribeBlocks() {
+            if (!supa) return;
+            supa.channel('blocks_rt')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'blocks' }, (payload) => {
+                    const rowId = (payload.new && payload.new.id) || (payload.old && payload.old.id);
+                    if (rowId && _blocksRecentWrites[rowId] && (Date.now() - _blocksRecentWrites[rowId] < 4000)) return; // своё эхо — игнор
+                    clearTimeout(_blocksRtTimer);
+                    _blocksRtTimer = setTimeout(async () => {
+                        _blocksApplying = true;
+                        const ok = await hydrateBlocksFromTable();
+                        _blocksApplying = false;
+                        if (ok) { try { localStorage.setItem('soloLevelingData_v4', JSON.stringify(appData)); } catch (e) {} refreshActiveView(); }
+                    }, 300);
+                })
+                .subscribe();
         }
 
         function getTodayDate() {
@@ -3305,8 +3563,12 @@
 
         function getWeekKey(offset = 0) {
             const d = new Date();
-            d.setDate(d.getDate() - d.getDay() + 1 + (offset * 7));
-            return d.toISOString().split('T')[0];
+            d.setHours(12, 0, 0, 0); // полдень — убираем сдвиг через UTC-полночь и DST
+            d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + (offset * 7)); // понедельник этой недели (Вс→пред. Пн)
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + day; // формат ЛОКАЛЬНЫЙ, не UTC — ключ одинаков на всех устройствах
         }
 
         // ==================== REUSABLE SORTING FUNCTION ====================
@@ -3416,6 +3678,7 @@
             } else {
                 renderWeekList(weekKey);
             }
+            _refreshBlockDetail(); // ЭТАП 3a: если открыта детали-модалка — обновить её из свежих данных
         }
 
         // Экран НЕДЕЛЯ — список 7 дней-кнопок
@@ -3464,6 +3727,402 @@
         }
 
         // Экран ДЕНЬ — заголовок + прогресс + блоки времени
+        // ЭТАП 2b: константы таймлайна (единый источник для рендера и resize)
+        const TL_PPM = 1.1, TL_MINH = 46, TL_MAXH = 230, TL_SNAP = 5, TL_MINDUR = 15;
+
+        // ЭТАП 2b: "HH:MM" из минут
+        function _fmtHM(mins) {
+            mins = Math.max(0, Math.min(1440, Math.round(mins)));
+            const h = Math.floor(mins / 60), m = mins % 60;
+            return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+        }
+
+        // ЭТАП 2b: resize блока за верх/низ ручки (снап 5 мин, мин 15; наложения разрешены → красным при ре-рендере)
+        let tlDrag = null;
+        function initTimelineResize() {
+            const handles = document.querySelectorAll('#weeklyContent .tl-handle');
+            handles.forEach(h => h.addEventListener('pointerdown', tlHandleDown));
+        }
+        function tlHandleDown(e) {
+            e.preventDefault(); e.stopPropagation();
+            const h = e.currentTarget;
+            const idx = parseInt(h.getAttribute('data-idx'), 10);
+            const edge = h.getAttribute('data-edge');
+            const weekKey = getWeekKey(currentWeekOffset), dayCode = selectedDayCode;
+            const arr = appData.weeklyTasks[weekKey] && appData.weeklyTasks[weekKey][dayCode];
+            const task = arr && arr[idx];
+            if (!task) return;
+            const s = getTaskStartTimeInMinutes(task), en = getTaskEndTimeInMinutes(task);
+            if (!isFinite(s) || !isFinite(en)) return;
+            const blockEl = h.closest('.day-block');
+            tlDrag = { edge: edge, y0: e.clientY, s0: s, e0: en, s: s, e: en, task: task, blockEl: blockEl, nbEl: null, nbBound: Infinity };
+            // соседний по времени блок + его граница — для live-подсветки «задеваешь»
+            let nb = blockEl;
+            do { nb = (edge === 'bottom') ? nb.nextElementSibling : nb.previousElementSibling; } while (nb && !nb.classList.contains('day-block'));
+            if (nb && nb.dataset.idx != null) {
+                const nbTask = arr[parseInt(nb.dataset.idx, 10)];
+                if (nbTask) { tlDrag.nbEl = nb; tlDrag.nbBound = (edge === 'bottom') ? getTaskStartTimeInMinutes(nbTask) : getTaskEndTimeInMinutes(nbTask); }
+            }
+            try { h.setPointerCapture(e.pointerId); } catch (err) {}
+            h.addEventListener('pointermove', tlHandleMove);
+            h.addEventListener('pointerup', tlHandleUp);
+            h.addEventListener('pointercancel', tlHandleUp);
+        }
+        function tlHandleMove(e) {
+            if (!tlDrag) return;
+            const dMin = Math.round(((e.clientY - tlDrag.y0) / TL_PPM) / TL_SNAP) * TL_SNAP;
+            if (tlDrag.edge === 'top') {
+                tlDrag.s = Math.max(0, Math.min(tlDrag.s0 + dMin, tlDrag.e0 - TL_MINDUR));
+            } else {
+                tlDrag.e = Math.min(1440, Math.max(tlDrag.e0 + dMin, tlDrag.s0 + TL_MINDUR));
+            }
+            if (tlDrag.blockEl) {
+                const H = Math.max(TL_MINH, Math.min(TL_MAXH, Math.round((tlDrag.e - tlDrag.s) * TL_PPM)));
+                tlDrag.blockEl.style.minHeight = H + 'px';
+                const tEl = tlDrag.blockEl.querySelector('.task-time');
+                if (tEl) tEl.textContent = _fmtHM(tlDrag.s) + ' - ' + _fmtHM(tlDrag.e);
+                const colliding = isFinite(tlDrag.nbBound) && (tlDrag.edge === 'bottom' ? tlDrag.e > tlDrag.nbBound : tlDrag.s < tlDrag.nbBound);
+                tlDrag.blockEl.classList.toggle('colliding', colliding);
+                if (tlDrag.nbEl) tlDrag.nbEl.classList.toggle('colliding', colliding);
+            }
+        }
+        function tlHandleUp(e) {
+            const h = e.currentTarget;
+            h.removeEventListener('pointermove', tlHandleMove);
+            h.removeEventListener('pointerup', tlHandleUp);
+            h.removeEventListener('pointercancel', tlHandleUp);
+            if (tlDrag) {
+                if (tlDrag.blockEl) tlDrag.blockEl.classList.remove('colliding');
+                if (tlDrag.nbEl) tlDrag.nbEl.classList.remove('colliding');
+                if (tlDrag.s !== tlDrag.s0 || tlDrag.e !== tlDrag.e0) {
+                    pushUndo();
+                    tlDrag.task.time = _fmtHM(tlDrag.s) + ' - ' + _fmtHM(tlDrag.e);
+                    saveData(appData);
+                    renderWeeklyPlan();
+                }
+                tlDrag = null;
+            }
+        }
+
+        // ЭТАП 2a: форматирование длительности разрыва («45 мин» / «1 ч 15 мин»)
+        function _fmtGap(mins) {
+            if (mins < 60) return mins + ' мин';
+            const h = Math.floor(mins / 60), m = mins % 60;
+            return m ? (h + ' ч ' + m + ' мин') : (h + ' ч');
+        }
+
+        // ЭТАП 2a: один блок таймлайна (высота ∝ длительность; ⠿-грип убран; overlap = красный)
+        function _renderTimelineBlock(it, weekKey, dayCode, isOverlap, isPast, PPM, MINH, MAXH, mtop) {
+            const task = it.t, idx = it.i;
+            const bt = _blockType(task.title);
+            const micro = Array.isArray(task.micro) ? task.micro : [];
+            const isExpanded = expandedBlocks.has(idx);
+            let hints = '';
+            if (task.desc && String(task.desc).trim()) hints += '📋';
+            if (Array.isArray(task.anchors) && task.anchors.length) hints += '🧭';
+            if (task.note && String(task.note).trim()) hints += '📝';
+            if (task.workoutUrl && String(task.workoutUrl).trim()) hints += '💪';
+            if (micro.length) hints += '☑' + micro.filter(m => m && m.done).length + '/' + micro.length;
+            const hintsHtml = (hints && !isExpanded) ? ' <span class="block-hints">' + hints + '</span>' : '';
+            const H = (isFinite(it.s) && isFinite(it.e) && it.e > it.s) ? Math.max(MINH, Math.min(MAXH, Math.round((it.e - it.s) * PPM))) : MINH;
+            const styleStr = (isExpanded ? '' : 'min-height:' + H + 'px;') + (mtop > 0 ? 'margin-top:-' + mtop + 'px;' : '');
+            const heightStyle = styleStr ? ' style="' + styleStr + '"' : '';
+            const handlesHtml = isExpanded ? '' : '<div class="tl-handle tl-handle-top" data-idx="' + idx + '" data-edge="top"></div><div class="tl-handle tl-handle-bottom" data-idx="' + idx + '" data-edge="bottom"></div>';
+            return '<div class="day-block ' + (task.completed ? 'completed ' : '') + (isExpanded ? 'expanded ' : '') + (isPast ? 'is-past ' : '') + (bt ? bt.cls + ' ' : '') + (isOverlap ? 'overlap ' : '') + '" data-idx="' + idx + '"' + heightStyle + '>' + handlesHtml +
+                '<div class="day-block-row">' +
+                    '<div class="task-checkbox ' + (task.completed ? 'checked' : '') + '" onclick="event.stopPropagation(); toggleTaskComplete(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')"></div>' +
+                    '<div class="day-block-content" onclick="toggleBlockExpand(' + idx + ')">' +
+                        (task.time ? '<div class="task-time">' + task.time + '</div>' : '') +
+                        '<div class="task-text">' + escapeHtml(task.title) + hintsHtml + '</div>' +
+                    '</div>' +
+                    '<span class="day-expand-chev" title="Раскрыть / свернуть" onclick="event.stopPropagation(); toggleBlockExpand(' + idx + ')">▾</span>' +
+                    '<div class="day-ctrls">' +
+                        '<button class="day-ctrl-btn" title="Редактировать" onclick="event.stopPropagation(); openEditTask(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')">✏️</button>' +
+                        '<button class="day-ctrl-btn del" title="Удалить" onclick="event.stopPropagation(); deleteBlock(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')">🗑️</button>' +
+                    '</div>' +
+                '</div>' +
+                (isExpanded ? renderBlockBody(weekKey, dayCode, idx, task, micro) : '') +
+            '</div>';
+        }
+
+        // ЭТАП 3a: absolute-КАЛЕНДАРЬ дня — блоки позиционированы по времени на оси (top=start), час-гуттер, наложения видно
+        function buildDayCalendar(tasks, weekKey, dayCode, pastIdx, collapsePast) {
+            const items = tasks.map((t, i) => ({ t: t, i: i, s: getTaskStartTimeInMinutes(t), e: getTaskEndTimeInMinutes(t) }))
+                .filter(it => isFinite(it.s) && isFinite(it.e) && it.e > it.s);
+            if (!items.length) {
+                const DS0 = 360, DE0 = 1320; // пустой день — ось 06:00–22:00, тап добавляет
+                let h = '<div class="day-cal day-cal-empty" style="height:' + Math.round((DE0 - DS0) * TL_PPM) + 'px" onclick="calBgClick(event, \'' + dayCode + '\', ' + DS0 + ')">';
+                for (let hh = DS0; hh <= DE0; hh += 60) { const y = Math.round((hh - DS0) * TL_PPM); h += '<div class="cal-hl" style="top:' + y + 'px"></div><div class="cal-hlbl" style="top:' + y + 'px">' + _fmtHM(hh) + '</div>'; }
+                h += '<div class="cal-empty-hint">Пусто. Нажми «📅 Идеальная неделя» сверху,<br>или тапни по времени, чтобы добавить блок.</div></div>';
+                return h;
+            }
+            items.sort((a, b) => a.s - b.s);
+            const minS = Math.min.apply(null, items.map(x => x.s)), maxE = Math.max.apply(null, items.map(x => x.e));
+            const DS = Math.floor(minS / 60) * 60, DE = Math.ceil(maxE / 60) * 60;
+            _calDS = DS;
+            const yy = (m) => (m - DS) * TL_PPM;
+            // наложения (попарно)
+            const ov = {};
+            for (let a = 0; a < items.length; a++) for (let b = a + 1; b < items.length; b++) {
+                if (items[a].s < items[b].e && items[b].s < items[a].e) { ov[items[a].i] = true; ov[items[b].i] = true; }
+            }
+            // ЭТАП 3a-2: колонки для наложений (interval-partitioning, как Google Calendar — оба блока видно бок-о-бок)
+            items.forEach(it => { it.col = 0; it.nCols = 1; });
+            let ci = 0;
+            while (ci < items.length) {
+                let cj = ci, clusterEnd = items[ci].e;
+                while (cj + 1 < items.length && items[cj + 1].s < clusterEnd) { cj++; clusterEnd = Math.max(clusterEnd, items[cj].e); }
+                const colEnds = [];
+                for (let k = ci; k <= cj; k++) {
+                    let placed = false;
+                    for (let c = 0; c < colEnds.length; c++) { if (items[k].s >= colEnds[c]) { items[k].col = c; colEnds[c] = items[k].e; placed = true; break; } }
+                    if (!placed) { items[k].col = colEnds.length; colEnds.push(items[k].e); }
+                }
+                for (let k = ci; k <= cj; k++) items[k].nCols = colEnds.length;
+                ci = cj + 1;
+            }
+            let html = '<div class="day-cal" style="height:' + Math.round(yy(DE)) + 'px" onclick="calBgClick(event, \'' + dayCode + '\', ' + DS + ')">';
+            for (let hh = DS; hh <= DE; hh += 60) {
+                const y = Math.round(yy(hh));
+                html += '<div class="cal-hl" style="top:' + y + 'px"></div><div class="cal-hlbl" style="top:' + y + 'px">' + _fmtHM(hh) + '</div>';
+            }
+            items.forEach(it => {
+                const isPast = pastIdx.has(it.i);
+                if (collapsePast && isPast) return;
+                const task = it.t, idx = it.i, bt = _blockType(task.title);
+                const top = Math.round(yy(it.s)), hh = Math.max(16, Math.round((it.e - it.s) * TL_PPM));
+                const geo = (it.nCols > 1) ? 'left:calc(46px + ' + it.col + ' * (100% - 50px) / ' + it.nCols + ');width:calc((100% - 50px) / ' + it.nCols + ' - 3px);' : 'left:46px;width:calc(100% - 50px);';
+                const cb = (hh >= 30) ? '<div class="cal-cb ' + (task.completed ? 'checked' : '') + '" onclick="event.stopPropagation(); toggleTaskComplete(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')"></div>' : '';
+                const exp = '<div class="cal-exp" onclick="event.stopPropagation(); openBlockDetail(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')" title="Детали"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg></div>';
+                const cls = 'cal-blk' + (task.completed ? ' completed' : '') + (isPast ? ' is-past' : '') + (bt ? ' ' + bt.cls : '') + (ov[it.i] ? ' overlap' : '') + (hh < 34 ? ' short' : '') + (cb ? ' has-cb' : '') + ' has-exp';
+                const inner = (hh >= 34 ? '<div class="cal-blk-t">' + _fmtHM(it.s) + '–' + _fmtHM(it.e) + '</div>' : '') +
+                    '<div class="cal-blk-n">' + escapeHtml(task.title) + '</div>';
+                const rz = '<div class="cal-rz cal-rz-t" data-edge="top"></div><div class="cal-rz cal-rz-b" data-edge="bottom"></div>';
+                html += '<div class="' + cls + '" style="top:' + top + 'px;height:' + hh + 'px;' + geo + '" data-idx="' + idx + '">' + rz + exp + cb + inner + '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // ЭТАП 3a: контекст открытой детали-модалки + её авто-обновление из свежих данных
+        var _bdCtx = null;
+        function _refreshBlockDetail() {
+            const md = document.getElementById('blockDetailModal');
+            if (_bdCtx && md && md.classList.contains('active')) openBlockDetail(_bdCtx.weekKey, _bdCtx.dayCode, _bdCtx.idx);
+        }
+
+        // ЭТАП 3a: детали блока ОВЕРЛЕЕМ (тап по блоку календаря) — чекбокс/✏️/🗑 + renderBlockBody
+        function openBlockDetail(weekKey, dayCode, idx) {
+            const arr = appData.weeklyTasks[weekKey] && appData.weeklyTasks[weekKey][dayCode];
+            const task = arr && arr[idx];
+            if (!task) return;
+            _bdCtx = { weekKey: weekKey, dayCode: dayCode, idx: idx };
+            const micro = Array.isArray(task.micro) ? task.micro : [];
+            let h = '<div class="bd-head">' +
+                '<div class="bd-cb ' + (task.completed ? 'checked' : '') + '" onclick="toggleTaskComplete(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + '); openBlockDetail(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')"></div>' +
+                '<div class="bd-titlewrap">' +
+                    (task.time ? '<div class="bd-time">' + task.time + '</div>' : '') +
+                    '<div class="bd-title">' + escapeHtml(task.title) + '</div>' +
+                '</div>' +
+                '<button class="bd-x" title="Закрыть" onclick="closeModal(\'blockDetailModal\')">✕</button>' +
+            '</div>';
+            h += renderBlockBody(weekKey, dayCode, idx, task, micro);
+            h += '<div class="bd-actions">' +
+                '<button class="bd-act" onclick="closeModal(\'blockDetailModal\'); openEditTask(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')">✏️ Время / название</button>' +
+                '<button class="bd-act del" onclick="if(confirm(\'Удалить блок?\')){ deleteBlock(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + '); closeModal(\'blockDetailModal\'); }">🗑️ Удалить</button>' +
+            '</div>';
+            document.getElementById('blockDetailContent').innerHTML = h;
+            openModal('blockDetailModal');
+        }
+
+        // ЭТАП 3a: тап по СВОБОДНОМУ месту календаря → форма добавления с уже подставленным временем (Notion-стиль)
+        function calBgClick(e, dayCode, DS) {
+            if (e.target.closest('.cal-blk')) return; // тап по блоку → его onclick (openBlockDetail), не добавляем
+            const rect = e.currentTarget.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            let mins = DS + Math.round((y / TL_PPM) / 5) * 5; // снап 5 мин
+            mins = Math.max(0, Math.min(1440 - 30, mins));
+            openAddAtTime(dayCode, mins);
+        }
+        // ЭТАП 3a: открыть форму добавления с предзаполненным временем (start .. start+30)
+        function openAddAtTime(dayCode, startMin) {
+            editContext = null;
+            document.getElementById('taskDay').value = dayCode;
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskTimeStart').value = _fmtHM(startMin);
+            document.getElementById('taskTimeEnd').value = _fmtHM(startMin + 30);
+            document.getElementById('taskTag').value = '';
+            const ttl = document.getElementById('taskModalTitle');
+            if (ttl) ttl.textContent = '📝 Новый блок · ' + _fmtHM(startMin) + '–' + _fmtHM(startMin + 30);
+            openModal('taskModal'); // без авто-фокуса на названии — клавиатура не вылезает сама
+        }
+
+        // ЭТАП 3b: resize блока — зона = МАЛЕНЬКИЙ центральный грип (верх/низ). Мгновенно.
+        // Свайп по телу/краям вне грипа = свободный скролл; хватаешь грип = тянешь время.
+        var _calDS = 0, calDrag = null;
+        function initCalInteract() {
+            document.querySelectorAll('#weeklyContent .cal-rz').forEach(function (z) { z.addEventListener('pointerdown', calRzDown); });
+            document.querySelectorAll('#weeklyContent .cal-blk').forEach(function (b) { b.addEventListener('pointerdown', calBlkDown); });
+        }
+        // ЭТАП 3c: двигать весь блок — LONG-PRESS по телу (~250мс) → тащишь на новое время. Свайп = скролл, тап = детали.
+        var _calMv = null, _calMvTimer = null;
+        function calBlkDown(e) {
+            if (e.target.closest('.cal-cb') || e.target.closest('.cal-rz') || e.target.closest('.cal-exp')) return; // чекбокс/грип/кнопка деталей — свои хендлеры
+            const el = e.currentTarget;
+            const idx = parseInt(el.getAttribute('data-idx'), 10);
+            const weekKey = getWeekKey(currentWeekOffset), dayCode = selectedDayCode;
+            const arr = appData.weeklyTasks[weekKey] && appData.weeklyTasks[weekKey][dayCode];
+            const task = arr && arr[idx];
+            if (!task) return;
+            const s = getTaskStartTimeInMinutes(task), en = getTaskEndTimeInMinutes(task);
+            if (!isFinite(s) || !isFinite(en)) return;
+            _calMv = { el: el, task: task, y0: e.clientY, x0: e.clientX, s0: s, e0: en, s: s, e: en, idx: idx, weekKey: weekKey, dayCode: dayCode, pointerId: e.pointerId, aborted: false, active: false };
+            _calMvTimer = setTimeout(calMvActivate, 250);
+            el.addEventListener('pointermove', calMvMove);
+            el.addEventListener('pointerup', calMvUp);
+            el.addEventListener('pointercancel', calMvUp);
+            el.addEventListener('touchmove', calMvTouchMove, { passive: false }); // КОРЕНЬ фикса: скролл на мобиле держит ТОЛЬКО preventDefault на touchmove (passive:false), pointermove.preventDefault его не останавливает → раньше браузер слал pointercancel и move обрывался
+        }
+        // Глушим прокрутку страницы ТОЛЬКО когда move уже активирован (long-press взял блок). До активации — не мешаем: свайп листает.
+        function calMvTouchMove(e) {
+            if (_calMv && _calMv.active) e.preventDefault();
+        }
+        function calMvActivate() {
+            _calMvTimer = null;
+            if (!_calMv || _calMv.aborted) return;
+            _calMv.active = true;
+            try { _calMv.el.setPointerCapture(_calMv.pointerId); } catch (err) {}
+            _calMv.el.style.zIndex = 30;
+            _calMv.el.classList.add('cal-moving');
+            if (navigator.vibrate) { try { navigator.vibrate(15); } catch (err) {} } // «взял блок»
+        }
+        function calMvMove(e) {
+            if (!_calMv) return;
+            const dy = e.clientY - _calMv.y0;
+            if (!_calMv.active) {
+                if (Math.abs(dy) > 8 || Math.abs(e.clientX - _calMv.x0) > 8) { _calMv.aborted = true; if (_calMvTimer) { clearTimeout(_calMvTimer); _calMvTimer = null; } }
+                return; // до активации не мешаем скроллу
+            }
+            e.preventDefault();
+            const dur = _calMv.e0 - _calMv.s0;
+            const d = Math.round((dy / TL_PPM) / TL_SNAP) * TL_SNAP;
+            const ns = Math.max(0, Math.min(_calMv.s0 + d, 1440 - dur));
+            _calMv.s = ns; _calMv.e = ns + dur;
+            _calMv.el.style.top = Math.round((_calMv.s - _calDS) * TL_PPM) + 'px';
+            const tEl = _calMv.el.querySelector('.cal-blk-t');
+            if (tEl) tEl.textContent = _fmtHM(_calMv.s) + '–' + _fmtHM(_calMv.e);
+        }
+        function calMvUp(e) {
+            const el = e.currentTarget;
+            el.removeEventListener('pointermove', calMvMove);
+            el.removeEventListener('pointerup', calMvUp);
+            el.removeEventListener('pointercancel', calMvUp);
+            el.removeEventListener('touchmove', calMvTouchMove, { passive: false });
+            if (_calMvTimer) { clearTimeout(_calMvTimer); _calMvTimer = null; }
+            el.classList.remove('cal-moving');
+            const p = _calMv; _calMv = null;
+            if (!p) return;
+            if (p.el) p.el.style.zIndex = '';
+            if (!p.active) {
+                if (e.type === 'pointerup' && !p.aborted) toggleCalSelect(p.el); // тап = выделить блок (показать грипы) / снять выделение; детали — кнопка ⤢
+                return;
+            }
+            if (p.s !== p.s0) {
+                pushUndo();
+                p.task.time = _fmtHM(p.s) + ' - ' + _fmtHM(p.e);
+                saveData(appData);
+                renderWeeklyPlan();
+            }
+        }
+        // ЭТАП 3d: тап по блоку = выделить (показать грипы resize) / снять. Детали теперь через кнопку ⤢ справа.
+        function toggleCalSelect(el) {
+            const on = el.classList.contains('sel');
+            document.querySelectorAll('#weeklyContent .cal-blk.sel').forEach(function (b) { b.classList.remove('sel'); });
+            if (!on) el.classList.add('sel');
+        }
+        function calRzDown(e) {
+            e.preventDefault(); e.stopPropagation();
+            const zoneEl = e.currentTarget;
+            const el = zoneEl.closest('.cal-blk');
+            if (!el) return;
+            const idx = parseInt(el.getAttribute('data-idx'), 10);
+            const weekKey = getWeekKey(currentWeekOffset), dayCode = selectedDayCode;
+            const arr = appData.weeklyTasks[weekKey] && appData.weeklyTasks[weekKey][dayCode];
+            const task = arr && arr[idx];
+            if (!task) return;
+            const s = getTaskStartTimeInMinutes(task), en = getTaskEndTimeInMinutes(task);
+            if (!isFinite(s) || !isFinite(en)) return;
+            calDrag = { zoneEl: zoneEl, el: el, task: task, zone: zoneEl.getAttribute('data-edge'), y0: e.clientY, s0: s, e0: en, s: s, e: en, idx: idx, weekKey: weekKey, dayCode: dayCode, moved: false };
+            el.style.zIndex = 25;
+            zoneEl.classList.add('rz-active');
+            try { zoneEl.setPointerCapture(e.pointerId); } catch (err) {}
+            zoneEl.addEventListener('pointermove', calRzMove);
+            zoneEl.addEventListener('pointerup', calRzUp);
+            zoneEl.addEventListener('pointercancel', calRzUp);
+        }
+        function calRzMove(e) {
+            if (!calDrag) return;
+            if (Math.abs(e.clientY - calDrag.y0) > 3) calDrag.moved = true;
+            const d = Math.round(((e.clientY - calDrag.y0) / TL_PPM) / TL_SNAP) * TL_SNAP;
+            if (calDrag.zone === 'top') calDrag.s = Math.max(0, Math.min(calDrag.s0 + d, calDrag.e0 - TL_MINDUR));
+            else calDrag.e = Math.min(1440, Math.max(calDrag.e0 + d, calDrag.s0 + TL_MINDUR));
+            const top = Math.round((calDrag.s - _calDS) * TL_PPM);
+            const h = Math.max(16, Math.round((calDrag.e - calDrag.s) * TL_PPM));
+            calDrag.el.style.top = top + 'px';
+            calDrag.el.style.height = h + 'px';
+            const tEl = calDrag.el.querySelector('.cal-blk-t');
+            if (tEl) tEl.textContent = _fmtHM(calDrag.s) + '–' + _fmtHM(calDrag.e);
+        }
+        function calRzUp(e) {
+            const z = e.currentTarget;
+            z.removeEventListener('pointermove', calRzMove);
+            z.removeEventListener('pointerup', calRzUp);
+            z.removeEventListener('pointercancel', calRzUp);
+            z.classList.remove('rz-active');
+            if (!calDrag) return;
+            const p = calDrag; calDrag = null;
+            if (p.el) p.el.style.zIndex = '';
+            if (!p.moved) { return; } // тап по грипу без тяги — ничего (блок уже выделен, грипы видны)
+            if (p.s !== p.s0 || p.e !== p.e0) {
+                pushUndo();
+                p.task.time = _fmtHM(p.s) + ' - ' + _fmtHM(p.e);
+                saveData(appData);
+                renderWeeklyPlan();
+            }
+        }
+
+        // ЭТАП 2a: собрать таймлайн дня — блоки сортированы по старту, разрывы = свободное время, наложения красным (СТАРОЕ flow — не используется, заменено buildDayCalendar)
+        function buildDayTimeline(tasks, weekKey, dayCode, pastIdx, collapsePast) {
+            const PPM = TL_PPM, MINH = TL_MINH, MAXH = TL_MAXH, MINGAP = 5, GAPMINPX = 8, GAPMAXPX = 120;
+            const items = tasks.map((t, i) => ({ t: t, i: i, s: getTaskStartTimeInMinutes(t), e: getTaskEndTimeInMinutes(t) }));
+            items.sort((a, b) => a.s - b.s);
+            const overlap = {};
+            for (let k = 1; k < items.length; k++) {
+                if (isFinite(items[k].s) && isFinite(items[k - 1].e) && items[k].s < items[k - 1].e) {
+                    overlap[items[k].i] = true; overlap[items[k - 1].i] = true;
+                }
+            }
+            let html = '', prev = null;
+            for (let k = 0; k < items.length; k++) {
+                const it = items[k];
+                const isPast = pastIdx.has(it.i);
+                if (collapsePast && isPast) continue;
+                let mtop = 0;
+                if (prev && isFinite(prev.e) && isFinite(it.s)) {
+                    const gap = it.s - prev.e;
+                    if (gap >= MINGAP) {
+                        const gh = Math.max(GAPMINPX, Math.min(GAPMAXPX, Math.round(gap * PPM)));
+                        html += '<div class="tl-gap" style="height:' + gh + 'px">' + (gh >= 22 ? '<span>свободно ' + _fmtGap(gap) + '</span>' : '') + '</div>';
+                    } else if (gap < 0) {
+                        mtop = Math.round(-gap * PPM); // наложение → визуально притянуть блок вверх на соседа
+                    }
+                }
+                html += _renderTimelineBlock(it, weekKey, dayCode, overlap[it.i], isPast, PPM, MINH, MAXH, mtop);
+                prev = it;
+            }
+            return html;
+        }
+
         function renderDayDetail(weekKey) {
             const container = document.getElementById('weeklyContent');
             const dayCode = selectedDayCode;
@@ -3503,7 +4162,9 @@
                     '<button class="day-back-btn" onclick="backToWeek()">← Неделя</button>' +
                     (undoStack.length ? '<button class="undo-btn" onclick="undoLast()">↶ Откатить</button>' : '') +
                     (isToday && totalCount > 0 ? '<button class="jump-now-btn" onclick="jumpToNow()">🧭 Где я сейчас</button>' : '') +
-                    '<div class="day-detail-title">' + dayNames[i] + ' <span class="day-detail-date">' + dayDate.getDate() + '.' + (dayDate.getMonth() + 1) + '</span></div>' +
+                    '<div class="day-title-row">' +
+                        '<div class="day-detail-title">' + dayNames[i] + ' <span class="day-detail-date">' + dayDate.getDate() + '.' + (dayDate.getMonth() + 1) + '</span></div>' +
+                    '</div>' +
                 '</div>' +
                 '<div class="day-progress">' +
                     '<div class="day-progress-top">' +
@@ -3532,47 +4193,13 @@
                         '<span class="dpt-done">✓ ' + pastDone + '/' + pastCount + '</span>' +
                     '</div>'
                 : '') +
-                '<div class="day-blocks' + (collapsePast ? ' past-collapsed' : '') + '">';
+                '';
 
-            if (totalCount === 0) {
-                html += '<div class="day-empty">Пусто. Нажми «📅 Идеальная неделя» сверху или добавь задачу ниже.</div>';
-            } else {
-                tasks.forEach((task, idx) => {
-                    const isSystem = task.tag === 'система';
-                    const bt = _blockType(task.title);
-                    const micro = Array.isArray(task.micro) ? task.micro : [];
-                    const isExpanded = expandedBlocks.has(idx);
-                    let hints = '';
-                    if (task.desc && String(task.desc).trim()) hints += '📋';
-                    if (Array.isArray(task.anchors) && task.anchors.length) hints += '🧭';
-                    if (task.note && String(task.note).trim()) hints += '📝';
-                    if (task.workoutUrl && String(task.workoutUrl).trim()) hints += '💪';
-                    if (micro.length) hints += '☑' + micro.filter(m => m && m.done).length + '/' + micro.length;
-                    const hintsHtml = (hints && !isExpanded) ? ' <span class="block-hints">' + hints + '</span>' : '';
-                    html += '<div class="day-block ' + (task.completed ? 'completed ' : '') + (isExpanded ? 'expanded ' : '') + (pastIdx.has(idx) ? 'is-past ' : '') + (bt ? bt.cls + ' ' : '') + '" data-idx="' + idx + '">' +
-                        '<div class="day-block-row">' +
-                            '<span class="day-drag" title="Перетащить">⠿</span>' +
-                            '<div class="task-checkbox ' + (task.completed ? 'checked' : '') + '" onclick="event.stopPropagation(); toggleTaskComplete(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')"></div>' +
-                            '<div class="day-block-content" onclick="toggleBlockExpand(' + idx + ')">' +
-                                (task.time ? '<div class="task-time">' + task.time + '</div>' : '') +
-                                '<div class="task-text">' + escapeHtml(task.title) + hintsHtml + '</div>' +
-                            '</div>' +
-                            '<span class="day-expand-chev" title="Раскрыть / свернуть" onclick="event.stopPropagation(); toggleBlockExpand(' + idx + ')">▾</span>' +
-                            '<div class="day-ctrls">' +
-                                '<button class="day-ctrl-btn" title="Редактировать" onclick="event.stopPropagation(); openEditTask(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')">✏️</button>' +
-                                '<button class="day-ctrl-btn del" title="Удалить" onclick="event.stopPropagation(); deleteBlock(\'' + weekKey + '\', \'' + dayCode + '\', ' + idx + ')">🗑️</button>' +
-                            '</div>' +
-                        '</div>' +
-                        (isExpanded ? renderBlockBody(weekKey, dayCode, idx, task, micro) : '') +
-                    '</div>';
-                });
-            }
+            html += buildDayCalendar(tasks, weekKey, dayCode, pastIdx, collapsePast);
 
-            html += '</div>' +
-                '<button class="btn-add-task" onclick="openTaskModal(\'' + dayCode + '\')">+ Добавить задачу</button>' +
-                '</div>';
+            html += '</div>';
             container.innerHTML = html;
-            initDaySortable(weekKey, dayCode);
+            initCalInteract(); // ЭТАП 3b: resize краёв блоков; тап по телу = детали; move (3c) далее
         }
 
         // ЭТАП 2.1/2.2: раскрытая начинка блока — как делать + якоря + заметка + микро (всё inline, вариант B)
@@ -3700,7 +4327,7 @@
             if (idx === -1) idx = 0;
             // если целевой блок спрятан в свёрнутых прошедших — раскрыть
             if (!showPastBlocks) { showPastBlocks = true; renderWeeklyPlan(); }
-            const el = document.querySelector('.day-block[data-idx="' + idx + '"]');
+            const el = document.querySelector('.cal-blk[data-idx="' + idx + '"]');
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 el.classList.add('now-flash');
@@ -3739,16 +4366,8 @@
             if (!task || !Array.isArray(task.micro) || !task.micro[mIdx]) return;
             const nowDone = !task.micro[mIdx].done;
             task.micro[mIdx].done = nowDone;
-            expandedBlocks.add(idx);
             saveData(appData);
-            // точечно обновить ТОЛЬКО этот микро-элемент (без полного ререндера → нет мелькания)
-            const block = document.querySelector('.day-block[data-idx="' + idx + '"]');
-            const item = block ? block.querySelectorAll('.micro-item')[mIdx] : null;
-            if (item) {
-                item.classList.toggle('done', nowDone);
-                const cb = item.querySelector('.micro-cb');
-                if (cb) cb.classList.toggle('done', nowDone);
-            }
+            renderWeeklyPlan(); // ЭТАП 3a: детали в модалке — полный ре-рендер (модалка авто-обновится); точечный .day-block-хак больше не годится
             if (nowDone) showMotivationalAnimation(); // дофамин-фидбэк как у обычной задачи
         }
         function deleteMicro(weekKey, dayCode, idx, mIdx) {
@@ -5065,7 +5684,16 @@
 
         // ==================== MODAL UTILS ====================
         function openModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
+            const m = document.getElementById(modalId);
+            m.classList.remove('sheet-collapsed'); // всегда открываем развёрнутым
+            m.classList.add('active');
+        }
+        // ЭТАП 3a: свернуть/развернуть bottom-sheet (форма уезжает в узкую полоску внизу, план виден целиком)
+        function toggleSheetCollapse() {
+            const m = document.getElementById('taskModal');
+            m.classList.toggle('sheet-collapsed');
+            const btn = m.querySelector('.sheet-toggle');
+            if (btn) btn.textContent = m.classList.contains('sheet-collapsed') ? '▴' : '▾';
         }
 
         function closeModal(modalId) {
@@ -5132,6 +5760,7 @@
         // Облачный синк: подтянуть состояние из Supabase + подписка realtime (Claude/другое устройство)
         if (typeof pullFromCloud === 'function') pullFromCloud();
         if (typeof subscribeCloud === 'function') subscribeCloud();
+        if (typeof subscribeBlocks === 'function') subscribeBlocks();
 
         // ==================== SERVICE WORKER REGISTRATION ====================
         if ('serviceWorker' in navigator) {
